@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>فورم احتياج وتوافر المواد - مديرية صحة طرطوس</title>
+<script src="xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#12312b;
+    --paper:#f6f4ee;
+    --card:#ffffff;
+    --teal:#0f5c56;
+    --teal-dark:#0a3d3a;
+    --gold:#b8873f;
+    --line:#e1ddd0;
+    --muted:#6b7268;
+    --red-bg:#fbdede; --red-fg:#8a1f1f;
+    --yellow-bg:#fbeec9; --yellow-fg:#7a5b06;
+    --green-bg:#dcefdd; --green-fg:#1e5c26;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; background:var(--paper); color:var(--ink);
+    font-family:"Segoe UI","Tahoma",Arial,sans-serif;
+  }
+  header.top{
+    background:var(--teal-dark); color:#fff; padding:22px 28px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  header.top h1{margin:0; font-size:1.25rem; font-weight:700;}
+  header.top .sub{font-size:.85rem; opacity:.8; margin-top:4px;}
+  .home-btn{
+    background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.35);
+    border-radius:8px; padding:8px 14px; cursor:pointer; font-size:.85rem;
+  }
+  .home-btn:hover{background:rgba(255,255,255,.22);}
+  main{max-width:1100px; margin:0 auto; padding:28px 20px 60px;}
+
+  /* ---- home grid ---- */
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-top:20px;}
+  .tile{
+    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px 18px;
+    cursor:pointer; text-align:center; transition:transform .15s, box-shadow .15s;
+  }
+  .tile:hover{transform:translateY(-3px); box-shadow:0 10px 22px rgba(15,92,86,.12);}
+  .tile .icon{font-size:1.8rem; margin-bottom:8px;}
+  .tile .name{font-weight:700; font-size:1.05rem;}
+  .tile .hint{font-size:.78rem; color:var(--muted); margin-top:4px;}
+  .tile.manager{border-color:var(--gold);}
+
+  /* ---- password modal ---- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(18,49,43,.55); display:flex;
+    align-items:center; justify-content:center; z-index:50;
+  }
+  .modal{
+    background:var(--card); border-radius:14px; padding:26px 24px; width:320px;
+    box-shadow:0 20px 50px rgba(0,0,0,.25);
+  }
+  .modal h3{margin:0 0 6px;}
+  .modal p{margin:0 0 16px; color:var(--muted); font-size:.85rem;}
+  .modal input{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;
+    font-size:1rem; margin-bottom:10px;
+  }
+  .modal .err{color:var(--red-fg); font-size:.8rem; min-height:1.1em; margin-bottom:8px;}
+  .row-btns{display:flex; gap:8px;}
+  .btn{
+    border:none; border-radius:8px; padding:10px 16px; cursor:pointer; font-size:.9rem; font-weight:600;
+  }
+  .btn-primary{background:var(--teal); color:#fff;}
+  .btn-primary:hover{background:var(--teal-dark);}
+  .btn-secondary{background:#eee; color:var(--ink);}
+  .btn-secondary:hover{background:#e2e2e2;}
+  .btn-danger{background:var(--red-bg); color:var(--red-fg);}
+  .btn-gold{background:var(--gold); color:#fff;}
+
+  /* ---- page shell ---- */
+  .page-title{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;}
+  .page-title h2{margin:0;}
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap;}
+
+  table{width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden;}
+  th,td{padding:9px 10px; border-bottom:1px solid var(--line); text-align:center; font-size:.9rem;}
+  th{background:var(--teal); color:#fff; font-weight:600; position:sticky; top:0;}
+  tr:last-child td{border-bottom:none;}
+  td input[type=number], td input[type=text]{
+    width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:.9rem; text-align:center;
+  }
+  td select{width:100%; padding:6px 6px; border:1px solid var(--line); border-radius:6px; font-size:.9rem;}
+  .coverage-cell{font-weight:700; border-radius:6px; padding:6px 4px;}
+  .cov-red{background:var(--red-bg); color:var(--red-fg);}
+  .cov-yellow{background:var(--yellow-bg); color:var(--yellow-fg);}
+  .cov-green{background:var(--green-bg); color:var(--green-fg);}
+  .del-btn{background:none; border:none; color:var(--red-fg); cursor:pointer; font-size:1rem;}
+  .table-wrap{max-height:65vh; overflow:auto; border-radius:12px; border:1px solid var(--line);}
+  .empty-note{color:var(--muted); font-size:.85rem; margin-top:10px;}
+  .materials-list{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px;}
+  .chip{
+    background:var(--card); border:1px solid var(--line); border-radius:999px; padding:6px 12px;
+    display:flex; align-items:center; gap:8px; font-size:.88rem;
+  }
+  .chip button{background:none; border:none; color:var(--red-fg); cursor:pointer; font-weight:700;}
+  .add-row{display:flex; gap:8px; margin-top:6px;}
+  .add-row input{flex:1; padding:10px 12px; border:1px solid var(--line); border-radius:8px;}
+  .status{font-size:.8rem; color:var(--muted); margin-top:10px;}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin:14px 0; font-size:.82rem; color:var(--muted);}
+  .legend span.dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-inline-start:5px;}
+  .info-box{background:#eef6f5; border:1px solid var(--teal); border-radius:10px; padding:12px 14px; font-size:.85rem; margin-bottom:16px; color:var(--teal-dark);}
+  .file-input-wrap{display:inline-block;}
+  .file-input-wrap input[type=file]{display:none;}
+  .filelist{margin-top:10px; font-size:.82rem; color:var(--muted);}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>فورم احتياج وتوافر المواد</h1>
+    <div class="sub">مديرية صحة طرطوس</div>
+  </div>
+  <button class="home-btn" id="homeBtn" style="display:none">⟵ الصفحة الرئيسية</button>
+</header>
+<main id="app"></main>
+
+<script>
+const DEPTS = [1,2,3,4,5];
+const DEPT_PASSWORDS = {1:"Ware1#2026",2:"Ware2#2026",3:"Ware3#2026",4:"Ware4#2026",5:"Ware5#2026"};
+const MANAGER_PASSWORD = "Manager#2026";
+const MATERIALS_PASSWORD = "Manager#2026";
+
+const app = document.getElementById("app");
+const homeBtn = document.getElementById("homeBtn");
+homeBtn.onclick = () => renderHome();
+
+// ---------- storage helpers (local to this device/browser only) ----------
+function storGet(key){
+  try{
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : null;
+  }catch(e){ return null; }
+}
+function storSet(key, value){
+  try{
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  }catch(e){ console.error("storage set failed", e); return false; }
+}
+
+function coverage(need, available){
+  const n = Number(need), a = Number(available);
+  if(!need || isNaN(n) || n===0) return null;
+  return a / n;
+}
+function coverageClass(v){
+  if(v===null || v===undefined || isNaN(v)) return "";
+  if(v<=3) return "cov-red";
+  if(v<=6) return "cov-yellow";
+  return "cov-green";
+}
+function fmtCov(v){
+  if(v===null || v===undefined || isNaN(v)) return "—";
+  return v.toFixed(1);
+}
+function uid(){ return "r"+Date.now()+Math.random().toString(16).slice(2,8); }
+
+// ---------- server sync helpers (shared across devices via Cloudflare KV) ----------
+async function apiGet(path){
+  try{
+    const res = await fetch(path);
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ return null; }
+}
+async function apiPost(path, data){
+  try{
+    const res = await fetch(path, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(data)
+    });
+    return res.ok;
+  }catch(e){ return false; }
+}
+
+// ---------- Excel helpers ----------
+function downloadWorkbook(wb, filename){
+  XLSX.writeFile(wb, filename);
+}
+function rowsToWorksheet(rows){
+  const data = rows.map((r,i)=>({
+    "تسلسل": i+1,
+    "اسم المادة": r.material || "",
+    "الاحتياج": r.need || "",
+    "العدد المتوفر": r.available || "",
+    "ملاحظات": r.notes || ""
+  }));
+  return XLSX.utils.json_to_sheet(data);
+}
+function readExcelFile(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        const wb = XLSX.read(e.target.result, {type:"array"});
+        resolve(wb);
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ---------- HOME ----------
+function renderHome(){
+  homeBtn.style.display = "none";
+  app.innerHTML = `
+    <p style="color:var(--muted)">اختر الصفحة التي تريد الدخول إليها. كل صفحة محمية بكلمة سر خاصة بها.</p>
+    <div class="grid">
+      <div class="tile manager" data-page="manager">
+        <div class="icon">📊</div><div class="name">صفحة المدير</div>
+        <div class="hint">تقرير مجمّع تلقائيًا من الأوراق الخمس</div>
+      </div>
+      <div class="tile manager" data-page="materials">
+        <div class="icon">🧾</div><div class="name">صفحة المواد</div>
+        <div class="hint">قائمة موحدة تُزامن تلقائيًا مع الجميع</div>
+      </div>
+      ${DEPTS.map(n=>`
+        <div class="tile" data-page="dept" data-n="${n}">
+          <div class="icon">🏥</div><div class="name">ورقة ${n}</div>
+          <div class="hint">إدخال احتياج وتوافر المواد</div>
+        </div>`).join("")}
+    </div>
+  `;
+  app.querySelectorAll(".tile").forEach(t=>{
+    t.onclick = () => {
+      const page = t.dataset.page;
+      if(page==="manager") askPassword("صفحة المدير", MANAGER_PASSWORD, renderManager);
+      else if(page==="materials") askPassword("صفحة المواد", MATERIALS_PASSWORD, renderMaterials);
+      else if(page==="dept"){
+        const n = Number(t.dataset.n);
+        askPassword(`ورقة ${n}`, DEPT_PASSWORDS[n], ()=>renderDept(n));
+      }
+    };
+  });
+}
+
+function askPassword(title, correctPassword, onSuccess){
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>${title}</h3>
+      <p>الرجاء إدخال كلمة السر للمتابعة</p>
+      <input type="password" id="pwInput" placeholder="كلمة السر">
+      <div class="err" id="pwErr"></div>
+      <div class="row-btns">
+        <button class="btn btn-primary" id="pwOk">دخول</button>
+        <button class="btn btn-secondary" id="pwCancel">إلغاء</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector("#pwInput");
+  const err = overlay.querySelector("#pwErr");
+  input.focus();
+  function tryEnter(){
+    if(input.value === correctPassword){
+      document.body.removeChild(overlay);
+      onSuccess();
+    }else{
+      err.textContent = "كلمة السر غير صحيحة";
+      input.value = "";
+      input.focus();
+    }
+  }
+  overlay.querySelector("#pwOk").onclick = tryEnter;
+  overlay.querySelector("#pwCancel").onclick = ()=>document.body.removeChild(overlay);
+  input.addEventListener("keydown", e=>{ if(e.key==="Enter") tryEnter(); });
+}
+
+// ---------- MATERIALS PAGE ----------
+function renderMaterials(){
+  homeBtn.style.display = "inline-block";
+  app.innerHTML = `<div class="page-title"><h2>قائمة المواد الموحدة</h2>
+      <div class="toolbar">
+        <button class="btn btn-secondary" id="exportMat">📤 تصدير Excel</button>
+        <label class="file-input-wrap"><button class="btn btn-secondary" id="importMatBtn" type="button">📥 استيراد Excel</button><input type="file" id="importMat" accept=".xlsx,.xls"></label>
+      </div>
+    </div>
+    <div class="info-box">القائمة تُحفظ على السيرفر تلقائيًا وتظهر فورًا لكل الأقسام — ما في داعي ترسليها لحدا.</div>
+    <div class="add-row">
+      <input type="text" id="newMat" placeholder="اسم مادة جديدة...">
+      <button class="btn btn-primary" id="addMat">إضافة</button>
+    </div>
+    <div class="materials-list" id="matList"></div>
+    <p class="status" id="matStatus">جارٍ تحميل القائمة...</p>`;
+
+  let materials = storGet("materials") || [];
+  let syncNote = "";
+  drawMatList();
+
+  (async ()=>{
+    const server = await apiGet(`/api/materials`);
+    if(server){ materials = server; storSet("materials", materials); drawMatList(); }
+  })();
+
+  let saveTimer = null;
+  function syncToServer(){
+    clearTimeout(saveTimer);
+    syncNote = "🔄 جارٍ الحفظ...";
+    drawStatus();
+    saveTimer = setTimeout(async ()=>{
+      const ok = await apiPost(`/api/materials`, materials);
+      syncNote = ok ? "✅ محفوظة ومتزامنة مع الجميع" : "⚠️ تعذّر الاتصال بالسيرفر — محفوظة محليًا فقط حاليًا";
+      drawStatus();
+    }, 500);
+  }
+  function drawStatus(){
+    const el = document.getElementById("matStatus");
+    if(el) el.textContent = `عدد المواد الحالي: ${materials.length}` + (syncNote ? ` — ${syncNote}` : "");
+  }
+
+  function drawMatList(){
+    const list = document.getElementById("matList");
+    list.innerHTML = materials.length ? materials.map((m,i)=>`
+      <div class="chip">${m} <button data-i="${i}">✕</button></div>
+    `).join("") : `<p class="empty-note">لا توجد مواد بعد. أضف أول مادة أعلاه أو استوردي ملف Excel.</p>`;
+    list.querySelectorAll("button[data-i]").forEach(b=>{
+      b.onclick = ()=>{
+        materials.splice(Number(b.dataset.i),1);
+        storSet("materials", materials);
+        drawMatList();
+        syncToServer();
+      };
+    });
+    drawStatus();
+  }
+
+  document.getElementById("addMat").onclick = ()=>{
+    const inp = document.getElementById("newMat");
+    const v = inp.value.trim();
+    if(!v) return;
+    if(materials.includes(v)){ inp.value=""; return; }
+    materials.push(v);
+    storSet("materials", materials);
+    inp.value = "";
+    drawMatList();
+    syncToServer();
+  };
+  document.getElementById("newMat").addEventListener("keydown", e=>{
+    if(e.key==="Enter") document.getElementById("addMat").click();
+  });
+
+  document.getElementById("exportMat").onclick = ()=>{
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(materials.map(m=>({"اسم المادة": m})));
+    XLSX.utils.book_append_sheet(wb, ws, "المواد");
+    downloadWorkbook(wb, "قائمة_المواد.xlsx");
+  };
+  document.getElementById("importMatBtn").onclick = ()=>document.getElementById("importMat").click();
+  document.getElementById("importMat").addEventListener("change", async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      const wb = await readExcelFile(file);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws);
+      const names = data.map(row => row["اسم المادة"] || row["المادة"] || Object.values(row)[0]).filter(Boolean).map(String);
+      let added = 0;
+      names.forEach(n=>{ if(!materials.includes(n)){ materials.push(n); added++; } });
+      storSet("materials", materials);
+      drawMatList();
+      syncToServer();
+    }catch(err){
+      alert("تعذّر قراءة الملف، تأكدي إنه ملف Excel صحيح.");
+    }
+    e.target.value = "";
+  });
+}
+
+// ---------- DEPARTMENT PAGE ----------
+function renderDept(n){
+  homeBtn.style.display = "inline-block";
+  app.innerHTML = `<div class="page-title">
+      <h2>ورقة ${n} - احتياج وتوافر المواد</h2>
+      <div class="toolbar">
+        <button class="btn btn-secondary" id="addRow">+ إضافة صف</button>
+        <button class="btn btn-secondary" id="exportData">📤 نسخة احتياطية Excel</button>
+      </div>
+    </div>
+    <div class="info-box">بياناتك تُحفظ وتُرسل تلقائيًا لصفحة المدير فور التعديل، بدون أي حاجة لإرسال ملفات.</div>
+    <div class="legend">
+      <span>مستوى الكفاية:</span>
+      <span>أحمر (0-3 أشهر)<span class="dot" style="background:var(--red-bg);border:1px solid var(--red-fg)"></span></span>
+      <span>أصفر (3-6 أشهر)<span class="dot" style="background:var(--yellow-bg);border:1px solid var(--yellow-fg)"></span></span>
+      <span>أخضر (أكثر من 6 أشهر)<span class="dot" style="background:var(--green-bg);border:1px solid var(--green-fg)"></span></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>تسلسل</th><th>اسم المادة</th><th>الاحتياج</th><th>العدد المتوفر</th><th>الكفاية</th><th>ملاحظات</th><th></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="status" id="deptStatus">جارٍ تحميل البيانات...</p>`;
+
+  let materials = storGet("materials") || [];
+  let rows = storGet(`dept_${n}`) || [];
+  let syncNote = "";
+  draw();
+
+  // load latest from server (other device may have saved data for this dept before)
+  (async ()=>{
+    const serverMats = await apiGet(`/api/materials`);
+    if(serverMats){ materials = serverMats; storSet("materials", materials); }
+    const serverRows = await apiGet(`/api/dept/${n}`);
+    if(serverRows){ rows = serverRows; storSet(`dept_${n}`, rows); }
+    draw();
+  })();
+
+  function draw(){
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = rows.map((r,i)=>{
+      const cov = coverage(r.need, r.available);
+      return `<tr data-i="${i}">
+        <td>${i+1}</td>
+        <td><select class="f-mat">
+              <option value="">— اختر —</option>
+              ${materials.map(m=>`<option value="${m}" ${m===r.material?"selected":""}>${m}</option>`).join("")}
+            </select></td>
+        <td><input type="number" min="0" class="f-need" value="${r.need ?? ""}"></td>
+        <td><input type="number" min="0" class="f-avail" value="${r.available ?? ""}"></td>
+        <td><span class="coverage-cell ${coverageClass(cov)}">${fmtCov(cov)}</span></td>
+        <td><input type="text" class="f-notes" value="${r.notes ?? ""}"></td>
+        <td><button class="del-btn" title="حذف الصف">🗑</button></td>
+      </tr>`;
+    }).join("");
+
+    if(!rows.length){
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-note">لا توجد صفوف بعد. اضغط "+ إضافة صف" للبدء.</td></tr>`;
+    }
+    document.getElementById("deptStatus").textContent = `عدد الصفوف: ${rows.length}` +
+      (materials.length ? "" : " — ملاحظة: قائمة المواد فارغة.") +
+      (syncNote ? ` — ${syncNote}` : "");
+
+    tbody.querySelectorAll("tr[data-i]").forEach(tr=>{
+      const i = Number(tr.dataset.i);
+      tr.querySelector(".f-mat").onchange = e=>{ rows[i].material = e.target.value; save(); };
+      tr.querySelector(".f-need").oninput = e=>{ rows[i].need = e.target.value; save(); redrawCoverage(tr,i); };
+      tr.querySelector(".f-avail").oninput = e=>{ rows[i].available = e.target.value; save(); redrawCoverage(tr,i); };
+      tr.querySelector(".f-notes").oninput = e=>{ rows[i].notes = e.target.value; save(); };
+      tr.querySelector(".del-btn").onclick = ()=>{ rows.splice(i,1); save(); draw(); };
+    });
+  }
+
+  function redrawCoverage(tr,i){
+    const cov = coverage(rows[i].need, rows[i].available);
+    const cell = tr.querySelector(".coverage-cell");
+    cell.className = "coverage-cell " + coverageClass(cov);
+    cell.textContent = fmtCov(cov);
+  }
+
+  let saveTimer = null;
+  function save(){
+    storSet(`dept_${n}`, rows);
+    syncNote = "🔄 جارٍ الحفظ على السيرفر...";
+    document.getElementById("deptStatus") && (document.getElementById("deptStatus").textContent =
+      `عدد الصفوف: ${rows.length} — ${syncNote}`);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async ()=>{
+      const ok = await apiPost(`/api/dept/${n}`, rows);
+      syncNote = ok ? "✅ محفوظ ومتزامن مع المدير" : "⚠️ تعذّر الاتصال بالسيرفر — البيانات محفوظة محليًا فقط حاليًا";
+      const statusEl = document.getElementById("deptStatus");
+      if(statusEl) statusEl.textContent = `عدد الصفوف: ${rows.length} — ${syncNote}`;
+    }, 500);
+  }
+
+  document.getElementById("addRow").onclick = ()=>{
+    rows.push({id:uid(), material:"", need:"", available:"", notes:""});
+    save();
+    draw();
+  };
+
+  document.getElementById("exportData").onclick = ()=>{
+    const wb = XLSX.utils.book_new();
+    const ws = rowsToWorksheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, `ورقة ${n}`);
+    downloadWorkbook(wb, `ورقة_${n}.xlsx`);
+  };
+}
+
+// ---------- MANAGER PAGE ----------
+function renderManager(){
+  homeBtn.style.display = "inline-block";
+  app.innerHTML = `<div class="page-title">
+      <h2>تقرير المدير - مجمّع حسب المادة</h2>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="refreshBtn">🔄 تحديث</button>
+        <button class="btn btn-secondary" id="exportAll">📤 تصدير التقرير Excel</button>
+      </div>
+    </div>
+    <div class="info-box">التقرير يُجمَّع تلقائيًا ولحظيًا من الأوراق الخمس — بدون الحاجة لأي استيراد يدوي.</div>
+    <div class="filelist" id="fileList"></div>
+    <div class="legend">
+      <span>مستوى الكفاية:</span>
+      <span>أحمر (0-3 أشهر)<span class="dot" style="background:var(--red-bg);border:1px solid var(--red-fg)"></span></span>
+      <span>أصفر (3-6 أشهر)<span class="dot" style="background:var(--yellow-bg);border:1px solid var(--yellow-fg)"></span></span>
+      <span>أخضر (أكثر من 6 أشهر)<span class="dot" style="background:var(--green-bg);border:1px solid var(--green-fg)"></span></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>تسلسل</th><th>اسم المادة</th><th>إجمالي العدد المتوفر</th><th>إجمالي الاحتياج</th><th>الكفاية الإجمالية</th>
+        </tr></thead>
+        <tbody id="mtbody"></tbody>
+      </table>
+    </div>
+    <p class="status" id="mgrStatus">جارٍ التحميل من الأقسام...</p>`;
+
+  let deptData = {}; // {1:[rows], 2:[rows], ...}
+  let lastTotals = [];
+
+  async function loadAll(){
+    document.getElementById("mgrStatus").textContent = "جارٍ التحميل من الأقسام...";
+    const results = await Promise.all(DEPTS.map(n => apiGet(`/api/dept/${n}`)));
+    let anyFailed = false;
+    DEPTS.forEach((n, idx) => {
+      if(results[idx] === null){ anyFailed = true; }
+      else { deptData[n] = results[idx]; }
+    });
+    computeAndDraw(anyFailed);
+  }
+
+  function computeAndDraw(anyFailed){
+    const totalsMap = {};
+    const filledDepts = [];
+    DEPTS.forEach(n=>{
+      const rows = deptData[n] || [];
+      if(rows.length) filledDepts.push(n);
+      rows.forEach(r=>{
+        if(!r.material) return;
+        if(!totalsMap[r.material]) totalsMap[r.material] = {avail:0, need:0};
+        totalsMap[r.material].avail += Number(r.available)||0;
+        totalsMap[r.material].need += Number(r.need)||0;
+      });
+    });
+    const totals = Object.keys(totalsMap).map(mat=>({mat, ...totalsMap[mat]}));
+    lastTotals = totals;
+
+    const tbody = document.getElementById("mtbody");
+    if(!totals.length){
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-note">لا توجد بيانات بعد — ما في قسم أدخل بياناته حتى الآن.</td></tr>`;
+    }else{
+      tbody.innerHTML = totals.map((t,i)=>{
+        const cov = t.need>0 ? t.avail/t.need : null;
+        return `<tr>
+          <td>${i+1}</td><td>${t.mat}</td><td>${t.avail}</td><td>${t.need}</td>
+          <td><span class="coverage-cell ${coverageClass(cov)}">${fmtCov(cov)}</span></td>
+        </tr>`;
+      }).join("");
+    }
+    const grandAvail = totals.reduce((s,t)=>s+t.avail,0);
+    const grandNeed = totals.reduce((s,t)=>s+t.need,0);
+    document.getElementById("mgrStatus").textContent =
+      `إجمالي عام: العدد المتوفر ${grandAvail} — الاحتياج ${grandNeed} — عدد المواد ${totals.length}` +
+      (anyFailed ? " — ⚠️ تعذّر الاتصال بالسيرفر لبعض الأقسام، جرّبي التحديث" : "");
+    document.getElementById("fileList").textContent =
+      `الأقسام التي أدخلت بيانات: ${filledDepts.length ? filledDepts.map(n=>`ورقة ${n}`).join("، ") : "لا يوجد بعد"}`;
+  }
+
+  document.getElementById("refreshBtn").onclick = loadAll;
+  document.getElementById("exportAll").onclick = ()=>{
+    const wb = XLSX.utils.book_new();
+    const data = lastTotals.map((t,i)=>({
+      "تسلسل": i+1,
+      "اسم المادة": t.mat,
+      "إجمالي العدد المتوفر": t.avail,
+      "إجمالي الاحتياج": t.need,
+      "الكفاية": t.need>0 ? (t.avail/t.need).toFixed(1) : "—"
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, "تقرير المدير");
+    downloadWorkbook(wb, "تقرير_المدير.xlsx");
+  };
+
+  loadAll();
+}
+
+renderHome();
+</script>
+</body>
+</html>
