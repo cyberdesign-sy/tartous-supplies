@@ -110,27 +110,87 @@
   .file-input-wrap{display:inline-block;}
   .file-input-wrap input[type=file]{display:none;}
   .filelist{margin-top:10px; font-size:.82rem; color:var(--muted);}
+
+  /* ---- header with emblem ---- */
+  header.top{padding:18px 28px;}
+  header.top .brand{display:flex; align-items:center; gap:14px;}
+  header.top .brand img{width:46px; height:auto; display:block;}
+  header.top .brand-text .org{font-size:.72rem; letter-spacing:.5px; opacity:.75; margin-top:2px;}
+  .top-actions{display:flex; gap:8px;}
+
+  /* ---- login screen ---- */
+  .login-wrap{
+    min-height:calc(100vh - 90px); display:flex; align-items:center; justify-content:center;
+    padding:30px 16px;
+  }
+  .login-card{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    box-shadow:0 20px 55px rgba(15,92,86,.12); width:100%; max-width:420px;
+    padding:34px 30px 28px; text-align:center;
+  }
+  .login-emblem{width:96px; height:auto; margin:0 auto 12px;}
+  .login-card h1{margin:0; font-size:1.15rem; color:var(--teal-dark);}
+  .login-card .org-name{font-weight:800; font-size:1.4rem; color:var(--ink); margin-top:6px;}
+  .login-card .tagline{font-size:.82rem; color:var(--muted); margin:6px 0 24px;}
+  .role-toggle{display:flex; gap:8px; margin-bottom:20px; background:var(--paper); border-radius:10px; padding:5px; border:1px solid var(--line);}
+  .role-toggle button{
+    flex:1; border:none; background:transparent; padding:10px 8px; border-radius:8px;
+    font-size:.88rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .15s;
+  }
+  .role-toggle button.active{background:var(--teal); color:#fff;}
+  .login-field{text-align:right; margin-bottom:14px;}
+  .login-field label{display:block; font-size:.82rem; font-weight:600; color:var(--ink); margin-bottom:6px;}
+  .login-field select, .login-field input{
+    width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:9px; font-size:.95rem;
+    font-family:inherit; background:#fff;
+  }
+  .login-card .btn-primary{width:100%; padding:12px; font-size:.95rem; margin-top:6px;}
+  .login-err{color:var(--red-fg); font-size:.82rem; min-height:1.2em; margin-top:10px;}
+  .login-footer{margin-top:22px; font-size:.72rem; color:var(--muted); border-top:1px solid var(--line); padding-top:14px;}
 </style>
 </head>
 <body>
 <header class="top">
-  <div>
-    <h1>فورم احتياج وتوافر المواد</h1>
-    <div class="sub">مديرية صحة طرطوس</div>
+  <div class="brand">
+    <img src="logo.png" alt="شعار الجمهورية العربية السورية">
+    <div class="brand-text">
+      <h1>مديرية صحة طرطوس</h1>
+      <div class="sub">فورم احتياج وتوافر المواد</div>
+      <div class="org">الجمهورية العربية السورية</div>
+    </div>
   </div>
-  <button class="home-btn" id="homeBtn" style="display:none">⟵ الصفحة الرئيسية</button>
+  <div class="top-actions">
+    <button class="home-btn" id="homeBtn" style="display:none">🏠 القائمة الرئيسية</button>
+    <button class="home-btn" id="logoutBtn" style="display:none">🚪 تسجيل خروج</button>
+  </div>
 </header>
 <main id="app"></main>
 
 <script>
 const DEPTS = [1,2,3,4,5];
+const DEPT_NAMES = {
+  1: "خدمات طبية",
+  2: "المشفى الوطني",
+  3: "مشفى الأطفال و التوليد",
+  4: "مشفى بانياس",
+  5: "مشفى القدموس"
+};
 const DEPT_PASSWORDS = {1:"Ware1#2026",2:"Ware2#2026",3:"Ware3#2026",4:"Ware4#2026",5:"Ware5#2026"};
 const MANAGER_PASSWORD = "Manager#2026";
-const MATERIALS_PASSWORD = "Manager#2026";
 
 const app = document.getElementById("app");
 const homeBtn = document.getElementById("homeBtn");
-homeBtn.onclick = () => renderHome();
+const logoutBtn = document.getElementById("logoutBtn");
+
+let session = null; // {role:"manager"} or {role:"dept", n:1}
+
+homeBtn.onclick = () => { if(session && session.role==="manager") renderManagerHome(); };
+logoutBtn.onclick = () => { session = null; renderLogin(); };
+
+function setNav(showHome){
+  homeBtn.style.display = showHome ? "inline-block" : "none";
+  logoutBtn.style.display = session ? "inline-block" : "none";
+}
 
 // ---------- storage helpers (local to this device/browser only) ----------
 function storGet(key){
@@ -210,76 +270,118 @@ function readExcelFile(file){
   });
 }
 
-// ---------- HOME ----------
-function renderHome(){
-  homeBtn.style.display = "none";
+// ---------- LOGIN SCREEN ----------
+function renderLogin(){
+  setNav(false);
+  let role = "manager"; // "manager" | "dept"
+
   app.innerHTML = `
-    <p style="color:var(--muted)">اختر الصفحة التي تريد الدخول إليها. كل صفحة محمية بكلمة سر خاصة بها.</p>
-    <div class="grid">
-      <div class="tile manager" data-page="manager">
-        <div class="icon">📊</div><div class="name">صفحة المدير</div>
-        <div class="hint">تقرير مجمّع تلقائيًا من الأوراق الخمس</div>
+    <div class="login-wrap">
+      <div class="login-card">
+        <img class="login-emblem" src="logo.png" alt="شعار الجمهورية العربية السورية">
+        <h1>الجمهورية العربية السورية</h1>
+        <div class="org-name">مديرية صحة طرطوس</div>
+        <div class="tagline">نظام إدارة احتياج وتوافر المواد</div>
+
+        <div class="role-toggle">
+          <button type="button" id="roleManager" class="active">مدير</button>
+          <button type="button" id="roleDept">مسؤول ورقة</button>
+        </div>
+
+        <div id="deptSelectField" class="login-field" style="display:none">
+          <label>اختر الورقة</label>
+          <select id="deptSelect">
+            ${DEPTS.map(n=>`<option value="${n}">${DEPT_NAMES[n]}</option>`).join("")}
+          </select>
+        </div>
+
+        <div class="login-field">
+          <label>كلمة السر</label>
+          <input type="password" id="loginPw" placeholder="أدخل كلمة السر">
+        </div>
+
+        <button class="btn btn-primary" id="loginBtn">دخول</button>
+        <div class="login-err" id="loginErr"></div>
+
+        <div class="login-footer">الدخول محمي بكلمة سر خاصة بكل جهة — يرجى عدم مشاركتها.</div>
       </div>
-      <div class="tile manager" data-page="materials">
-        <div class="icon">🧾</div><div class="name">صفحة المواد</div>
-        <div class="hint">قائمة موحدة تُزامن تلقائيًا مع الجميع</div>
+    </div>`;
+
+  const roleManagerBtn = document.getElementById("roleManager");
+  const roleDeptBtn = document.getElementById("roleDept");
+  const deptField = document.getElementById("deptSelectField");
+  const pwInput = document.getElementById("loginPw");
+  const errEl = document.getElementById("loginErr");
+
+  function setRole(r){
+    role = r;
+    roleManagerBtn.classList.toggle("active", r==="manager");
+    roleDeptBtn.classList.toggle("active", r==="dept");
+    deptField.style.display = r==="dept" ? "block" : "none";
+    errEl.textContent = "";
+  }
+  roleManagerBtn.onclick = ()=>setRole("manager");
+  roleDeptBtn.onclick = ()=>setRole("dept");
+
+  function tryLogin(){
+    const pw = pwInput.value;
+    if(role==="manager"){
+      if(pw === MANAGER_PASSWORD){
+        session = {role:"manager"};
+        renderManagerHome();
+      }else{
+        errEl.textContent = "كلمة السر غير صحيحة";
+      }
+    }else{
+      const n = Number(document.getElementById("deptSelect").value);
+      if(pw === DEPT_PASSWORDS[n]){
+        session = {role:"dept", n};
+        renderDept(n);
+      }else{
+        errEl.textContent = "كلمة السر غير صحيحة";
+      }
+    }
+    pwInput.value = "";
+  }
+  document.getElementById("loginBtn").onclick = tryLogin;
+  pwInput.addEventListener("keydown", e=>{ if(e.key==="Enter") tryLogin(); });
+  pwInput.focus();
+}
+
+// ---------- MANAGER DASHBOARD (list of all sheets) ----------
+function renderManagerHome(){
+  setNav(false); // on the dashboard itself, no need for a "home" button
+  app.innerHTML = `
+    <p style="color:var(--muted)">مرحبًا بك — اختاري الصفحة التي تريدين فتحها.</p>
+    <div class="grid">
+      <div class="tile manager" data-action="report">
+        <div class="icon">📊</div><div class="name">التقرير المجمّع</div>
+        <div class="hint">تجميع تلقائي من كل الأوراق</div>
+      </div>
+      <div class="tile manager" data-action="materials">
+        <div class="icon">🧾</div><div class="name">قائمة المواد</div>
+        <div class="hint">القائمة الموحدة لكل الأوراق</div>
       </div>
       ${DEPTS.map(n=>`
-        <div class="tile" data-page="dept" data-n="${n}">
-          <div class="icon">🏥</div><div class="name">ورقة ${n}</div>
-          <div class="hint">إدخال احتياج وتوافر المواد</div>
+        <div class="tile" data-action="dept" data-n="${n}">
+          <div class="icon">🏥</div><div class="name">${DEPT_NAMES[n]}</div>
+          <div class="hint">عرض بيانات هذه الورقة</div>
         </div>`).join("")}
     </div>
   `;
   app.querySelectorAll(".tile").forEach(t=>{
     t.onclick = () => {
-      const page = t.dataset.page;
-      if(page==="manager") askPassword("صفحة المدير", MANAGER_PASSWORD, renderManager);
-      else if(page==="materials") askPassword("صفحة المواد", MATERIALS_PASSWORD, renderMaterials);
-      else if(page==="dept"){
-        const n = Number(t.dataset.n);
-        askPassword(`ورقة ${n}`, DEPT_PASSWORDS[n], ()=>renderDept(n));
-      }
+      const action = t.dataset.action;
+      if(action==="report") renderManager();
+      else if(action==="materials") renderMaterials();
+      else if(action==="dept") renderDept(Number(t.dataset.n));
     };
   });
 }
 
-function askPassword(title, correctPassword, onSuccess){
-  const overlay = document.createElement("div");
-  overlay.className = "overlay";
-  overlay.innerHTML = `
-    <div class="modal">
-      <h3>${title}</h3>
-      <p>الرجاء إدخال كلمة السر للمتابعة</p>
-      <input type="password" id="pwInput" placeholder="كلمة السر">
-      <div class="err" id="pwErr"></div>
-      <div class="row-btns">
-        <button class="btn btn-primary" id="pwOk">دخول</button>
-        <button class="btn btn-secondary" id="pwCancel">إلغاء</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  const input = overlay.querySelector("#pwInput");
-  const err = overlay.querySelector("#pwErr");
-  input.focus();
-  function tryEnter(){
-    if(input.value === correctPassword){
-      document.body.removeChild(overlay);
-      onSuccess();
-    }else{
-      err.textContent = "كلمة السر غير صحيحة";
-      input.value = "";
-      input.focus();
-    }
-  }
-  overlay.querySelector("#pwOk").onclick = tryEnter;
-  overlay.querySelector("#pwCancel").onclick = ()=>document.body.removeChild(overlay);
-  input.addEventListener("keydown", e=>{ if(e.key==="Enter") tryEnter(); });
-}
-
 // ---------- MATERIALS PAGE ----------
 function renderMaterials(){
-  homeBtn.style.display = "inline-block";
+  setNav(true);
   app.innerHTML = `<div class="page-title"><h2>قائمة المواد الموحدة</h2>
       <div class="toolbar">
         <button class="btn btn-secondary" id="exportMat">📤 تصدير Excel</button>
@@ -379,9 +481,9 @@ function renderMaterials(){
 
 // ---------- DEPARTMENT PAGE ----------
 function renderDept(n){
-  homeBtn.style.display = "inline-block";
+  setNav(session && session.role==="manager");
   app.innerHTML = `<div class="page-title">
-      <h2>ورقة ${n} - احتياج وتوافر المواد</h2>
+      <h2>${DEPT_NAMES[n]} - احتياج وتوافر المواد</h2>
       <div class="toolbar">
         <button class="btn btn-secondary" id="addRow">+ إضافة صف</button>
         <button class="btn btn-secondary" id="exportData">📤 نسخة احتياطية Excel</button>
@@ -484,14 +586,14 @@ function renderDept(n){
   document.getElementById("exportData").onclick = ()=>{
     const wb = XLSX.utils.book_new();
     const ws = rowsToWorksheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, `ورقة ${n}`);
-    downloadWorkbook(wb, `ورقة_${n}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, DEPT_NAMES[n]);
+    downloadWorkbook(wb, `${DEPT_NAMES[n]}.xlsx`);
   };
 }
 
 // ---------- MANAGER PAGE ----------
 function renderManager(){
-  homeBtn.style.display = "inline-block";
+  setNav(true);
   app.innerHTML = `<div class="page-title">
       <h2>تقرير المدير - مجمّع حسب المادة</h2>
       <div class="toolbar">
@@ -565,7 +667,7 @@ function renderManager(){
       `إجمالي عام: العدد المتوفر ${grandAvail} — الاحتياج ${grandNeed} — عدد المواد ${totals.length}` +
       (anyFailed ? " — ⚠️ تعذّر الاتصال بالسيرفر لبعض الأقسام، جرّبي التحديث" : "");
     document.getElementById("fileList").textContent =
-      `الأقسام التي أدخلت بيانات: ${filledDepts.length ? filledDepts.map(n=>`ورقة ${n}`).join("، ") : "لا يوجد بعد"}`;
+      `الأوراق التي أدخلت بيانات: ${filledDepts.length ? filledDepts.map(n=>DEPT_NAMES[n]).join("، ") : "لا يوجد بعد"}`;
   }
 
   document.getElementById("refreshBtn").onclick = loadAll;
@@ -586,7 +688,7 @@ function renderManager(){
   loadAll();
 }
 
-renderHome();
+renderLogin();
 </script>
 </body>
 </html>
