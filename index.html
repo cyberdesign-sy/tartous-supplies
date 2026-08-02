@@ -285,7 +285,7 @@ function renderLogin(){
 
         <div class="role-toggle">
           <button type="button" id="roleManager" class="active">مدير</button>
-          <button type="button" id="roleDept">مسؤول ورقة</button>
+          <button type="button" id="roleDept">مستخدم</button>
         </div>
 
         <div id="deptSelectField" class="login-field" style="display:none">
@@ -352,7 +352,7 @@ function renderLogin(){
 function renderManagerHome(){
   setNav(false); // on the dashboard itself, no need for a "home" button
   app.innerHTML = `
-    <p style="color:var(--muted)">مرحبًا بك — اختاري الصفحة التي تريدين فتحها.</p>
+    <p style="color:var(--muted)">مرحبًا بك — اختر الصفحة التي تريد فتحها.</p>
     <div class="grid">
       <div class="tile manager" data-action="report">
         <div class="icon">📊</div><div class="name">التقرير المجمّع</div>
@@ -425,7 +425,7 @@ function renderMaterials(){
     const list = document.getElementById("matList");
     list.innerHTML = materials.length ? materials.map((m,i)=>`
       <div class="chip">${m} <button data-i="${i}">✕</button></div>
-    `).join("") : `<p class="empty-note">لا توجد مواد بعد. أضف أول مادة أعلاه أو استوردي ملف Excel.</p>`;
+    `).join("") : `<p class="empty-note">لا توجد مواد بعد. أضف أول مادة أعلاه أو استورد ملف Excel.</p>`;
     list.querySelectorAll("button[data-i]").forEach(b=>{
       b.onclick = ()=>{
         materials.splice(Number(b.dataset.i),1);
@@ -473,7 +473,7 @@ function renderMaterials(){
       drawMatList();
       syncToServer();
     }catch(err){
-      alert("تعذّر قراءة الملف، تأكدي إنه ملف Excel صحيح.");
+      alert("تعذّر قراءة الملف، تأكد إنه ملف Excel صحيح.");
     }
     e.target.value = "";
   });
