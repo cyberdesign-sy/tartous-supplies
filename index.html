@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title> نظام إدارة احتياج وتوافر المواد - مديرية صحة طرطوس</title>
+<title>فورم احتياج وتوافر المواد - مديرية صحة طرطوس</title>
 <script src="xlsx.full.min.js"></script>
 <style>
   :root{
@@ -130,7 +130,7 @@
   }
   .login-emblem{width:96px; height:auto; margin:0 auto 12px;}
   .login-card h1{margin:0; font-size:1.15rem; color:var(--teal-dark);}
-  .login-card .org-name{font-weight:800; font-size:1.25rem; color:var(--ink); margin-top:6px;}
+  .login-card .org-name{font-weight:800; font-size:1.4rem; color:var(--ink); margin-top:6px;}
   .login-card .tagline{font-size:.82rem; color:var(--muted); margin:6px 0 24px;}
   .role-toggle{display:flex; gap:8px; margin-bottom:20px; background:var(--paper); border-radius:10px; padding:5px; border:1px solid var(--line);}
   .role-toggle button{
@@ -148,6 +148,26 @@
   .login-err{color:var(--red-fg); font-size:.82rem; min-height:1.2em; margin-top:10px;}
   .login-footer{margin-top:22px; font-size:.72rem; color:var(--muted); border-top:1px solid var(--line); padding-top:14px;}
   .login-credit{margin-top:8px; font-size:.68rem; color:var(--muted); opacity:.7;}
+
+  /* ---- collapsible chart section (materials page) ---- */
+  .chart-section{margin-top:26px;}
+  .chart-section > summary{
+    cursor:pointer; font-weight:700; color:var(--teal-dark); padding:12px 16px;
+    background:var(--card); border:1px solid var(--line); border-radius:10px; list-style:none;
+  }
+  .chart-section > summary::-webkit-details-marker{display:none;}
+  .chart-section > summary::before{content:"▸ "; }
+  .chart-section[open] > summary::before{content:"▾ "; }
+  .chart-body{margin-top:14px; max-height:60vh; overflow:auto; padding-right:4px;}
+  .chart-row{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-bottom:10px;}
+  .chart-label{display:flex; justify-content:space-between; align-items:center; font-weight:700; margin-bottom:8px; font-size:.9rem;}
+  .chart-bar-line{display:flex; align-items:center; gap:8px; margin-bottom:4px; font-size:.78rem; color:var(--muted);}
+  .chart-bar-tag{width:48px; flex-shrink:0;}
+  .chart-bar-track{flex:1; background:var(--paper); border-radius:6px; height:10px; overflow:hidden;}
+  .chart-bar-fill{height:100%; border-radius:6px;}
+  .chart-bar-fill.avail{background:var(--teal);}
+  .chart-bar-fill.need{background:var(--gold);}
+  .chart-bar-val{width:34px; text-align:left; flex-shrink:0; font-weight:600; color:var(--ink);}
 </style>
 </head>
 <body>
@@ -155,8 +175,9 @@
   <div class="brand">
     <img src="logo.png" alt="شعار الجمهورية العربية السورية">
     <div class="brand-text">
-      <h1>الجمهورية العربية السورية</h1>
-      <div class="org">مديرية صحة طرطوس</div>
+      <h1>مديرية صحة طرطوس</h1>
+      <div class="sub">فورم احتياج وتوافر المواد</div>
+      <div class="org">الجمهورية العربية السورية</div>
     </div>
   </div>
   <div class="top-actions">
@@ -175,7 +196,13 @@ const DEPT_NAMES = {
   4: "مشفى بانياس",
   5: "مشفى القدموس"
 };
-const DEPT_PASSWORDS = {1:"Ware1#2026",2:"Ware2#2026",3:"Ware3#2026",4:"Ware4#2026",5:"Ware5#2026"};
+const DEPT_ACCOUNTS = {
+  1: {full:"Ware1F#2026", limited:"Ware1L#2026"},
+  2: {full:"Ware2F#2026", limited:"Ware2L#2026"},
+  3: {full:"Ware3F#2026", limited:"Ware3L#2026"},
+  4: {full:"Ware4F#2026", limited:"Ware4L#2026"},
+  5: {full:"Ware5F#2026", limited:"Ware5L#2026"}
+};
 const MANAGER_PASSWORD = "Manager#2026";
 
 const app = document.getElementById("app");
@@ -240,6 +267,58 @@ async function apiPost(path, data){
     });
     return res.ok;
   }catch(e){ return false; }
+}
+
+// aggregates avail/need per material across all 5 sheets — used by manager report AND materials chart
+async function fetchDeptSnapshot(){
+  const results = await Promise.all(DEPTS.map(n => apiGet(`/api/dept/${n}`)));
+  let anyFailed = false;
+  const deptData = {};
+  DEPTS.forEach((n, idx) => {
+    if(results[idx] === null){ anyFailed = true; }
+    else{ deptData[n] = results[idx]; }
+  });
+  const totalsMap = {};
+  const filledDepts = [];
+  DEPTS.forEach(n=>{
+    const rows = deptData[n] || [];
+    if(rows.length) filledDepts.push(n);
+    rows.forEach(r=>{
+      if(!r.material) return;
+      if(!totalsMap[r.material]) totalsMap[r.material] = {avail:0, need:0};
+      totalsMap[r.material].avail += Number(r.available)||0;
+      totalsMap[r.material].need += Number(r.need)||0;
+    });
+  });
+  const totals = Object.keys(totalsMap).map(mat=>({mat, ...totalsMap[mat]}));
+  return {totals, filledDepts, anyFailed};
+}
+
+function renderChartRows(totals){
+  if(!totals.length) return `<p class="empty-note">لا توجد بيانات كافية لعرض المخطط بعد.</p>`;
+  const maxVal = Math.max(1, ...totals.flatMap(t=>[t.avail, t.need]));
+  return totals.map(t=>{
+    const cov = t.need>0 ? t.avail/t.need : null;
+    const availPct = Math.round((t.avail/maxVal)*100);
+    const needPct = Math.round((t.need/maxVal)*100);
+    return `
+      <div class="chart-row">
+        <div class="chart-label">
+          <span>${t.mat}</span>
+          <span class="coverage-cell ${coverageClass(cov)}" style="font-size:.7rem;padding:2px 8px;">${fmtCov(cov)}</span>
+        </div>
+        <div class="chart-bar-line">
+          <span class="chart-bar-tag">متوفر</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill avail" style="width:${availPct}%"></div></div>
+          <span class="chart-bar-val">${t.avail}</span>
+        </div>
+        <div class="chart-bar-line">
+          <span class="chart-bar-tag">احتياج</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill need" style="width:${needPct}%"></div></div>
+          <span class="chart-bar-val">${t.need}</span>
+        </div>
+      </div>`;
+  }).join("");
 }
 
 // ---------- Excel helpers ----------
@@ -335,8 +414,12 @@ function renderLogin(){
       }
     }else{
       const n = Number(document.getElementById("deptSelect").value);
-      if(pw === DEPT_PASSWORDS[n]){
-        session = {role:"dept", n};
+      const acc = DEPT_ACCOUNTS[n];
+      if(pw === acc.full){
+        session = {role:"dept", n, perm:"full"};
+        renderDept(n);
+      }else if(pw === acc.limited){
+        session = {role:"dept", n, perm:"limited"};
         renderDept(n);
       }else{
         errEl.textContent = "كلمة السر غير صحيحة";
@@ -395,7 +478,12 @@ function renderMaterials(){
       <button class="btn btn-primary" id="addMat">إضافة</button>
     </div>
     <div class="materials-list" id="matList"></div>
-    <p class="status" id="matStatus">جارٍ تحميل القائمة...</p>`;
+    <p class="status" id="matStatus">جارٍ تحميل القائمة...</p>
+
+    <details class="chart-section" id="chartSection">
+      <summary>عرض مخطط التوافر والاحتياج حسب المادة</summary>
+      <div class="chart-body" id="chartBody"><p class="empty-note">جارٍ تحميل البيانات...</p></div>
+    </details>`;
 
   let materials = storGet("materials") || [];
   let syncNote = "";
@@ -478,19 +566,35 @@ function renderMaterials(){
     }
     e.target.value = "";
   });
+
+  const chartSection = document.getElementById("chartSection");
+  let chartLoaded = false;
+  chartSection.addEventListener("toggle", async ()=>{
+    if(chartSection.open && !chartLoaded){
+      chartLoaded = true;
+      const {totals} = await fetchDeptSnapshot();
+      document.getElementById("chartBody").innerHTML = renderChartRows(totals);
+    }
+  });
 }
 
 // ---------- DEPARTMENT PAGE ----------
 function renderDept(n){
   setNav(session && session.role==="manager");
+  const perm = (session && session.role==="manager") ? "full" : (session ? session.perm : "full");
+  const permLabel = perm==="full"
+    ? `<span style="font-size:.72rem; background:var(--green-bg); color:var(--green-fg); padding:3px 9px; border-radius:999px; font-weight:700;">صلاحية كاملة</span>`
+    : `<span style="font-size:.72rem; background:var(--yellow-bg); color:var(--yellow-fg); padding:3px 9px; border-radius:999px; font-weight:700;">صلاحية محدودة</span>`;
   app.innerHTML = `<div class="page-title">
-      <h2>${DEPT_NAMES[n]} - احتياج وتوافر المواد</h2>
+      <h2>${DEPT_NAMES[n]} - احتياج وتوافر المواد ${permLabel}</h2>
       <div class="toolbar">
         <button class="btn btn-secondary" id="addRow">+ إضافة صف</button>
         <button class="btn btn-secondary" id="exportData">📤 نسخة احتياطية Excel</button>
       </div>
     </div>
-    <div class="info-box">بياناتك تُحفظ وتُرسل تلقائيًا لصفحة المدير فور التعديل، بدون أي حاجة لإرسال ملفات.</div>
+    <div class="info-box">بياناتك تُحفظ وتُرسل تلقائيًا لصفحة المدير فور التعديل، بدون أي حاجة لإرسال ملفات.${
+      perm==="limited" ? "<br>ملاحظة: لا يمكنك حذف الصفوف، ولا تعديل أي صف بعد إضافة صف جديد بعده." : ""
+    }</div>
     <div class="legend">
       <span>مستوى الكفاية:</span>
       <span>أحمر (0-3 أشهر)<span class="dot" style="background:var(--red-bg);border:1px solid var(--red-fg)"></span></span>
@@ -523,19 +627,36 @@ function renderDept(n){
 
   function draw(){
     const tbody = document.getElementById("tbody");
+    const canDelete = perm === "full";
     tbody.innerHTML = rows.map((r,i)=>{
       const cov = coverage(r.need, r.available);
-      return `<tr data-i="${i}">
-        <td>${i+1}</td>
-        <td><select class="f-mat">
+      const editable = perm === "full" || !r.locked;
+      const matCell = editable
+        ? `<select class="f-mat">
               <option value="">— اختر —</option>
               ${materials.map(m=>`<option value="${m}" ${m===r.material?"selected":""}>${m}</option>`).join("")}
-            </select></td>
-        <td><input type="number" min="0" class="f-need" value="${r.need ?? ""}"></td>
-        <td><input type="number" min="0" class="f-avail" value="${r.available ?? ""}"></td>
+            </select>`
+        : `<span>${r.material || "—"}</span>`;
+      const needCell = editable
+        ? `<input type="number" min="0" class="f-need" value="${r.need ?? ""}">`
+        : `<span>${r.need ?? "—"}</span>`;
+      const availCell = editable
+        ? `<input type="number" min="0" class="f-avail" value="${r.available ?? ""}">`
+        : `<span>${r.available ?? "—"}</span>`;
+      const notesCell = editable
+        ? `<input type="text" class="f-notes" value="${r.notes ?? ""}">`
+        : `<span>${r.notes ?? ""}</span>`;
+      const lastCell = canDelete
+        ? `<button class="del-btn" title="حذف الصف">🗑</button>`
+        : (editable ? "" : `<span title="مقفل — تم إضافة صف جديد بعده">🔒</span>`);
+      return `<tr data-i="${i}">
+        <td>${i+1}</td>
+        <td>${matCell}</td>
+        <td>${needCell}</td>
+        <td>${availCell}</td>
         <td><span class="coverage-cell ${coverageClass(cov)}">${fmtCov(cov)}</span></td>
-        <td><input type="text" class="f-notes" value="${r.notes ?? ""}"></td>
-        <td><button class="del-btn" title="حذف الصف">🗑</button></td>
+        <td>${notesCell}</td>
+        <td>${lastCell}</td>
       </tr>`;
     }).join("");
 
@@ -548,11 +669,16 @@ function renderDept(n){
 
     tbody.querySelectorAll("tr[data-i]").forEach(tr=>{
       const i = Number(tr.dataset.i);
-      tr.querySelector(".f-mat").onchange = e=>{ rows[i].material = e.target.value; save(); };
-      tr.querySelector(".f-need").oninput = e=>{ rows[i].need = e.target.value; save(); redrawCoverage(tr,i); };
-      tr.querySelector(".f-avail").oninput = e=>{ rows[i].available = e.target.value; save(); redrawCoverage(tr,i); };
-      tr.querySelector(".f-notes").oninput = e=>{ rows[i].notes = e.target.value; save(); };
-      tr.querySelector(".del-btn").onclick = ()=>{ rows.splice(i,1); save(); draw(); };
+      const matEl = tr.querySelector(".f-mat");
+      if(matEl) matEl.onchange = e=>{ rows[i].material = e.target.value; save(); };
+      const needEl = tr.querySelector(".f-need");
+      if(needEl) needEl.oninput = e=>{ rows[i].need = e.target.value; save(); redrawCoverage(tr,i); };
+      const availEl = tr.querySelector(".f-avail");
+      if(availEl) availEl.oninput = e=>{ rows[i].available = e.target.value; save(); redrawCoverage(tr,i); };
+      const notesEl = tr.querySelector(".f-notes");
+      if(notesEl) notesEl.oninput = e=>{ rows[i].notes = e.target.value; save(); };
+      const delBtn = tr.querySelector(".del-btn");
+      if(delBtn) delBtn.onclick = ()=>{ rows.splice(i,1); save(); draw(); };
     });
   }
 
@@ -579,7 +705,8 @@ function renderDept(n){
   }
 
   document.getElementById("addRow").onclick = ()=>{
-    rows.push({id:uid(), material:"", need:"", available:"", notes:""});
+    rows.forEach(r=>{ r.locked = true; });
+    rows.push({id:uid(), material:"", need:"", available:"", notes:"", locked:false});
     save();
     draw();
   };
@@ -620,34 +747,11 @@ function renderManager(){
     </div>
     <p class="status" id="mgrStatus">جارٍ التحميل من الأقسام...</p>`;
 
-  let deptData = {}; // {1:[rows], 2:[rows], ...}
   let lastTotals = [];
 
   async function loadAll(){
     document.getElementById("mgrStatus").textContent = "جارٍ التحميل من الأقسام...";
-    const results = await Promise.all(DEPTS.map(n => apiGet(`/api/dept/${n}`)));
-    let anyFailed = false;
-    DEPTS.forEach((n, idx) => {
-      if(results[idx] === null){ anyFailed = true; }
-      else { deptData[n] = results[idx]; }
-    });
-    computeAndDraw(anyFailed);
-  }
-
-  function computeAndDraw(anyFailed){
-    const totalsMap = {};
-    const filledDepts = [];
-    DEPTS.forEach(n=>{
-      const rows = deptData[n] || [];
-      if(rows.length) filledDepts.push(n);
-      rows.forEach(r=>{
-        if(!r.material) return;
-        if(!totalsMap[r.material]) totalsMap[r.material] = {avail:0, need:0};
-        totalsMap[r.material].avail += Number(r.available)||0;
-        totalsMap[r.material].need += Number(r.need)||0;
-      });
-    });
-    const totals = Object.keys(totalsMap).map(mat=>({mat, ...totalsMap[mat]}));
+    const {totals, filledDepts, anyFailed} = await fetchDeptSnapshot();
     lastTotals = totals;
 
     const tbody = document.getElementById("mtbody");
