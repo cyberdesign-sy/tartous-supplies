@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>نظام إدارة احتياج وتوافر المواد - مديرية صحة طرطوس</title>
+<title>فورم احتياج وتوافر المواد - مديرية صحة طرطوس</title>
 <script src="xlsx.full.min.js"></script>
 <style>
   :root{
@@ -130,7 +130,7 @@
   }
   .login-emblem{width:96px; height:auto; margin:0 auto 12px;}
   .login-card h1{margin:0; font-size:1.15rem; color:var(--teal-dark);}
-  .login-card .org-name{font-weight:800; font-size:1.25rem; color:var(--ink); margin-top:6px;}
+  .login-card .org-name{font-weight:800; font-size:1.4rem; color:var(--ink); margin-top:6px;}
   .login-card .tagline{font-size:.82rem; color:var(--muted); margin:6px 0 24px;}
   .role-toggle{display:flex; gap:8px; margin-bottom:20px; background:var(--paper); border-radius:10px; padding:5px; border:1px solid var(--line);}
   .role-toggle button{
@@ -176,6 +176,7 @@
     <img src="logo.png" alt="شعار الجمهورية العربية السورية">
     <div class="brand-text">
       <h1>مديرية صحة طرطوس</h1>
+      <div class="sub">فورم احتياج وتوافر المواد</div>
       <div class="org">الجمهورية العربية السورية</div>
     </div>
   </div>
@@ -248,6 +249,25 @@ function fmtCov(v){
   return v.toFixed(1);
 }
 function uid(){ return "r"+Date.now()+Math.random().toString(16).slice(2,8); }
+
+function confirmAction(message, onConfirm){
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>تأكيد الحذف</h3>
+      <p>${message}</p>
+      <div class="row-btns">
+        <button class="btn btn-danger" id="confirmYes">نعم، احذف</button>
+        <button class="btn btn-secondary" id="confirmNo">لا</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => document.body.removeChild(overlay);
+  overlay.querySelector("#confirmYes").onclick = () => { close(); onConfirm(); };
+  overlay.querySelector("#confirmNo").onclick = close;
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+}
 
 // ---------- server sync helpers (shared across devices via Cloudflare KV) ----------
 async function apiGet(path){
@@ -516,10 +536,14 @@ function renderMaterials(){
     `).join("") : `<p class="empty-note">لا توجد مواد بعد. أضف أول مادة أعلاه أو استورد ملف Excel.</p>`;
     list.querySelectorAll("button[data-i]").forEach(b=>{
       b.onclick = ()=>{
-        materials.splice(Number(b.dataset.i),1);
-        storSet("materials", materials);
-        drawMatList();
-        syncToServer();
+        const idx = Number(b.dataset.i);
+        const matName = materials[idx];
+        confirmAction(`هل أنت متأكد من حذف المادة "${matName}"؟`, ()=>{
+          materials.splice(idx,1);
+          storSet("materials", materials);
+          drawMatList();
+          syncToServer();
+        });
       };
     });
     drawStatus();
@@ -677,7 +701,11 @@ function renderDept(n){
       const notesEl = tr.querySelector(".f-notes");
       if(notesEl) notesEl.oninput = e=>{ rows[i].notes = e.target.value; save(); };
       const delBtn = tr.querySelector(".del-btn");
-      if(delBtn) delBtn.onclick = ()=>{ rows.splice(i,1); save(); draw(); };
+      if(delBtn) delBtn.onclick = ()=>{
+        confirmAction(`هل أنت متأكد من حذف هذا الصف${rows[i].material ? ` ("${rows[i].material}")` : ""}؟`, ()=>{
+          rows.splice(i,1); save(); draw();
+        });
+      };
     });
   }
 
