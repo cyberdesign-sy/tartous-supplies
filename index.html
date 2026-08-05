@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>نظام إدارة احتياج وتوافر المواد - مديرية صحة طرطوس</title>
+<title>فورم احتياج وتوافر المواد - مديرية صحة طرطوس</title>
 <script src="xlsx.full.min.js"></script>
 <style>
   :root{
@@ -130,7 +130,7 @@
   }
   .login-emblem{width:96px; height:auto; margin:0 auto 12px;}
   .login-card h1{margin:0; font-size:1.15rem; color:var(--teal-dark);}
-  .login-card .org-name{font-weight:800; font-size:1.25rem; color:var(--ink); margin-top:6px;}
+  .login-card .org-name{font-weight:800; font-size:1.4rem; color:var(--ink); margin-top:6px;}
   .login-card .tagline{font-size:.82rem; color:var(--muted); margin:6px 0 24px;}
   .role-toggle{display:flex; gap:8px; margin-bottom:20px; background:var(--paper); border-radius:10px; padding:5px; border:1px solid var(--line);}
   .role-toggle button{
@@ -158,16 +158,41 @@
   .chart-section > summary::-webkit-details-marker{display:none;}
   .chart-section > summary::before{content:"▸ "; }
   .chart-section[open] > summary::before{content:"▾ "; }
-  .chart-body{margin-top:14px; max-height:60vh; overflow:auto; padding-right:4px;}
-  .chart-row{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-bottom:10px;}
-  .chart-label{display:flex; justify-content:space-between; align-items:center; font-weight:700; margin-bottom:8px; font-size:.9rem;}
-  .chart-bar-line{display:flex; align-items:center; gap:8px; margin-bottom:4px; font-size:.78rem; color:var(--muted);}
-  .chart-bar-tag{width:48px; flex-shrink:0;}
-  .chart-bar-track{flex:1; background:var(--paper); border-radius:6px; height:10px; overflow:hidden;}
-  .chart-bar-fill{height:100%; border-radius:6px;}
-  .chart-bar-fill.avail{background:var(--teal);}
-  .chart-bar-fill.need{background:var(--gold);}
-  .chart-bar-val{width:34px; text-align:left; flex-shrink:0; font-weight:600; color:var(--ink);}
+  .chart-body{margin-top:14px; max-height:70vh; overflow:auto; padding-right:4px;}
+
+  /* ---- combined vertical chart (materials page) ---- */
+  .vchart-legend{display:flex; gap:16px; font-size:.78rem; color:var(--muted); margin-bottom:10px;}
+  .vchart-legend .dot{width:10px; height:10px; border-radius:3px; display:inline-block; margin-inline-end:5px; vertical-align:-1px;}
+  .vchart-wrap{overflow-x:auto; padding:26px 8px 10px; background:var(--card); border:1px solid var(--line); border-radius:12px;}
+  .vchart{display:flex; align-items:flex-end; gap:26px; min-height:230px;}
+  .vchart-item{display:flex; flex-direction:column; align-items:center; min-width:82px;}
+  .vchart-bars{display:flex; align-items:flex-end; gap:6px; height:190px;}
+  .vchart-bar{width:22px; border-radius:5px 5px 0 0; position:relative; min-height:2px;}
+  .vchart-bar.avail{background:var(--teal);}
+  .vchart-bar.need{background:var(--gold);}
+  .vchart-val{position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-size:.68rem; font-weight:700; color:var(--ink); white-space:nowrap;}
+  .vchart-label{margin-top:10px; font-size:.75rem; text-align:center; color:var(--ink); max-width:96px; line-height:1.3;}
+  .vchart-cov{margin-top:6px; font-size:.68rem; padding:2px 8px;}
+
+  /* ---- material movement sub-page ---- */
+  .summary-cards{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px;}
+  .summary-card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 20px; min-width:150px; text-align:center;}
+  .summary-card .val{font-size:1.35rem; font-weight:800; color:var(--teal-dark);}
+  .summary-card .lbl{font-size:.75rem; color:var(--muted); margin-top:3px;}
+  .movement-forms{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:26px;}
+  @media (max-width:700px){ .movement-forms{grid-template-columns:1fr;} }
+  .movement-form{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px;}
+  .movement-form.in{border-top:4px solid var(--teal);}
+  .movement-form.out{border-top:4px solid var(--gold);}
+  .movement-form h3{margin:0 0 12px; font-size:1rem;}
+  .movement-form label{display:block; font-size:.8rem; font-weight:600; margin:10px 0 5px; color:var(--ink);}
+  .movement-form input{width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; font-size:.9rem; font-family:inherit;}
+  .movement-form button{width:100%; margin-top:16px;}
+  .mov-btn{background:none; border:1px solid var(--teal); color:var(--teal); border-radius:7px; padding:5px 10px; cursor:pointer; font-size:.8rem; margin-inline-end:4px; font-weight:600;}
+  .mov-btn:hover{background:var(--teal); color:#fff;}
+  .mov-type{font-weight:700; border-radius:6px; padding:4px 10px; font-size:.78rem;}
+  .mov-type.in{background:var(--green-bg); color:var(--green-fg);}
+  .mov-type.out{background:var(--red-bg); color:var(--red-fg);}
 </style>
 </head>
 <body>
@@ -176,6 +201,7 @@
     <img src="logo.png" alt="شعار الجمهورية العربية السورية">
     <div class="brand-text">
       <h1>مديرية صحة طرطوس</h1>
+      <div class="sub">فورم احتياج وتوافر المواد</div>
       <div class="org">الجمهورية العربية السورية</div>
     </div>
   </div>
@@ -192,8 +218,8 @@ const DEPT_NAMES = {
   1: "خدمات طبية",
   2: "المشفى الوطني",
   3: "مشفى الأطفال",
-  4: "مشفى التوليد",
-  5: "مشفى بانياس"
+  4: "مشفى بانياس",
+  5: "مشفى التوليد"
 };
 const DEPT_ACCOUNTS = {
   1: {full:"Ware1F#2026", limited:"Ware1L#2026"},
@@ -249,15 +275,25 @@ function fmtCov(v){
 }
 function uid(){ return "r"+Date.now()+Math.random().toString(16).slice(2,8); }
 
-function confirmAction(message, onConfirm){
+// materials are stored as {name, unit}; these helpers also accept legacy plain-string entries
+function matName(m){ return typeof m === "string" ? m : (m && m.name) || ""; }
+function matUnit(m){ return typeof m === "string" ? "" : (m && m.unit) || ""; }
+function unitForMaterial(materialsArr, name){
+  const found = (materialsArr || []).find(m => matName(m) === name);
+  return found ? matUnit(found) : "";
+}
+
+function confirmAction(message, onConfirm, opts = {}){
+  const title = opts.title || "تأكيد الحذف";
+  const yesLabel = opts.yesLabel || "نعم، احذف";
   const overlay = document.createElement("div");
   overlay.className = "overlay";
   overlay.innerHTML = `
     <div class="modal">
-      <h3>تأكيد الحذف</h3>
+      <h3>${title}</h3>
       <p>${message}</p>
       <div class="row-btns">
-        <button class="btn btn-danger" id="confirmYes">نعم، احذف</button>
+        <button class="btn btn-danger" id="confirmYes">${yesLabel}</button>
         <button class="btn btn-secondary" id="confirmNo">لا</button>
       </div>
     </div>`;
@@ -289,12 +325,15 @@ async function apiPost(path, data){
 
 // aggregates avail/need per material across all 5 sheets — used by manager report AND materials chart
 async function fetchDeptSnapshot(){
-  const results = await Promise.all(DEPTS.map(n => apiGet(`/api/dept/${n}`)));
+  const [deptResults, materialsList] = await Promise.all([
+    Promise.all(DEPTS.map(n => apiGet(`/api/dept/${n}`))),
+    apiGet(`/api/materials`)
+  ]);
   let anyFailed = false;
   const deptData = {};
   DEPTS.forEach((n, idx) => {
-    if(results[idx] === null){ anyFailed = true; }
-    else{ deptData[n] = results[idx]; }
+    if(deptResults[idx] === null){ anyFailed = true; }
+    else{ deptData[n] = deptResults[idx]; }
   });
   const totalsMap = {};
   const filledDepts = [];
@@ -308,45 +347,47 @@ async function fetchDeptSnapshot(){
       totalsMap[r.material].need += Number(r.need)||0;
     });
   });
-  const totals = Object.keys(totalsMap).map(mat=>({mat, ...totalsMap[mat]}));
+  const totals = Object.keys(totalsMap).map(mat=>({
+    mat, unit: unitForMaterial(materialsList||[], mat), ...totalsMap[mat]
+  }));
   return {totals, filledDepts, anyFailed};
 }
 
-function renderChartRows(totals){
+// single combined vertical bar chart for all materials at once
+function renderVerticalChart(totals){
   if(!totals.length) return `<p class="empty-note">لا توجد بيانات كافية لعرض المخطط بعد.</p>`;
   const maxVal = Math.max(1, ...totals.flatMap(t=>[t.avail, t.need]));
-  return totals.map(t=>{
+  const bars = totals.map(t=>{
     const cov = t.need>0 ? t.avail/t.need : null;
-    const availPct = Math.round((t.avail/maxVal)*100);
-    const needPct = Math.round((t.need/maxVal)*100);
+    const availH = Math.round((t.avail/maxVal)*100);
+    const needH = Math.round((t.need/maxVal)*100);
     return `
-      <div class="chart-row">
-        <div class="chart-label">
-          <span>${t.mat}</span>
-          <span class="coverage-cell ${coverageClass(cov)}" style="font-size:.7rem;padding:2px 8px;">${fmtCov(cov)}</span>
+      <div class="vchart-item">
+        <div class="vchart-bars">
+          <div class="vchart-bar avail" style="height:${availH}%"><span class="vchart-val">${t.avail}</span></div>
+          <div class="vchart-bar need" style="height:${needH}%"><span class="vchart-val">${t.need}</span></div>
         </div>
-        <div class="chart-bar-line">
-          <span class="chart-bar-tag">متوفر</span>
-          <div class="chart-bar-track"><div class="chart-bar-fill avail" style="width:${availPct}%"></div></div>
-          <span class="chart-bar-val">${t.avail}</span>
-        </div>
-        <div class="chart-bar-line">
-          <span class="chart-bar-tag">احتياج</span>
-          <div class="chart-bar-track"><div class="chart-bar-fill need" style="width:${needPct}%"></div></div>
-          <span class="chart-bar-val">${t.need}</span>
-        </div>
+        <div class="vchart-label">${t.mat}${t.unit ? `<br><span style="opacity:.6">(${t.unit})</span>` : ""}</div>
+        <span class="coverage-cell ${coverageClass(cov)} vchart-cov">${fmtCov(cov)}</span>
       </div>`;
   }).join("");
+  return `
+    <div class="vchart-legend">
+      <span><span class="dot" style="background:var(--teal)"></span>متوفر</span>
+      <span><span class="dot" style="background:var(--gold)"></span>احتياج</span>
+    </div>
+    <div class="vchart-wrap"><div class="vchart">${bars}</div></div>`;
 }
 
 // ---------- Excel helpers ----------
 function downloadWorkbook(wb, filename){
   XLSX.writeFile(wb, filename);
 }
-function rowsToWorksheet(rows){
+function rowsToWorksheet(rows, materials){
   const data = rows.map((r,i)=>({
     "تسلسل": i+1,
     "اسم المادة": r.material || "",
+    "الوحدة": unitForMaterial(materials || [], r.material) || "",
     "الاحتياج": r.need || "",
     "العدد المتوفر": r.available || "",
     "ملاحظات": r.notes || ""
@@ -491,8 +532,22 @@ function renderMaterials(){
       </div>
     </div>
     <div class="info-box">القائمة تُحفظ على السيرفر تلقائيًا وتظهر فورًا لكل الأقسام.</div>
-    <div class="add-row">
+    <div class="add-row" style="flex-wrap:wrap;">
       <input type="text" id="newMat" placeholder="اسم مادة جديدة...">
+      <select id="newMatUnit">
+        <option value="قطعة">قطعة</option>
+        <option value="علبة">علبة</option>
+        <option value="كرتون">كرتون</option>
+        <option value="عبوة">عبوة</option>
+        <option value="شريط">شريط</option>
+        <option value="أنبولة">أنبولة</option>
+        <option value="لتر">لتر</option>
+        <option value="مل">مل</option>
+        <option value="كغ">كغ</option>
+        <option value="غرام">غرام</option>
+        <option value="__other__">أخرى...</option>
+      </select>
+      <input type="text" id="newMatUnitOther" placeholder="حدد الوحدة" style="display:none; flex:1;">
       <button class="btn btn-primary" id="addMat">إضافة</button>
     </div>
     <div class="materials-list" id="matList"></div>
@@ -506,6 +561,10 @@ function renderMaterials(){
   let materials = storGet("materials") || [];
   let syncNote = "";
   drawMatList();
+
+  document.getElementById("newMatUnit").addEventListener("change", (e)=>{
+    document.getElementById("newMatUnitOther").style.display = e.target.value === "__other__" ? "block" : "none";
+  });
 
   (async ()=>{
     const server = await apiGet(`/api/materials`);
@@ -531,13 +590,13 @@ function renderMaterials(){
   function drawMatList(){
     const list = document.getElementById("matList");
     list.innerHTML = materials.length ? materials.map((m,i)=>`
-      <div class="chip">${m} <button data-i="${i}">✕</button></div>
+      <div class="chip">${matName(m)}${matUnit(m) ? ` <span style="opacity:.6">(${matUnit(m)})</span>` : ""} <button data-i="${i}">✕</button></div>
     `).join("") : `<p class="empty-note">لا توجد مواد بعد. أضف أول مادة أعلاه أو استورد ملف Excel.</p>`;
     list.querySelectorAll("button[data-i]").forEach(b=>{
       b.onclick = ()=>{
         const idx = Number(b.dataset.i);
-        const matName = materials[idx];
-        confirmAction(`هل أنت متأكد من حذف المادة "${matName}"؟`, ()=>{
+        const mName = matName(materials[idx]);
+        confirmAction(`هل أنت متأكد من حذف المادة "${mName}"؟`, ()=>{
           materials.splice(idx,1);
           storSet("materials", materials);
           drawMatList();
@@ -552,10 +611,14 @@ function renderMaterials(){
     const inp = document.getElementById("newMat");
     const v = inp.value.trim();
     if(!v) return;
-    if(materials.includes(v)){ inp.value=""; return; }
-    materials.push(v);
+    if(materials.some(m=>matName(m)===v)){ inp.value=""; return; }
+    const unitSel = document.getElementById("newMatUnit").value;
+    const unitOther = document.getElementById("newMatUnitOther").value.trim();
+    const unit = unitSel === "__other__" ? unitOther : unitSel;
+    materials.push({name:v, unit: unit || ""});
     storSet("materials", materials);
     inp.value = "";
+    document.getElementById("newMatUnitOther").value = "";
     drawMatList();
     syncToServer();
   };
@@ -565,7 +628,7 @@ function renderMaterials(){
 
   document.getElementById("exportMat").onclick = ()=>{
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(materials.map(m=>({"اسم المادة": m})));
+    const ws = XLSX.utils.json_to_sheet(materials.map(m=>({"اسم المادة": matName(m), "الوحدة": matUnit(m)})));
     XLSX.utils.book_append_sheet(wb, ws, "المواد");
     downloadWorkbook(wb, "قائمة_المواد.xlsx");
   };
@@ -577,9 +640,14 @@ function renderMaterials(){
       const wb = await readExcelFile(file);
       const ws = wb.Sheets[wb.SheetNames[0]];
       const data = XLSX.utils.sheet_to_json(ws);
-      const names = data.map(row => row["اسم المادة"] || row["المادة"] || Object.values(row)[0]).filter(Boolean).map(String);
+      const items = data.map(row => ({
+        name: String(row["اسم المادة"] || row["المادة"] || Object.values(row)[0] || "").trim(),
+        unit: String(row["الوحدة"] || "").trim()
+      })).filter(it => it.name);
       let added = 0;
-      names.forEach(n=>{ if(!materials.includes(n)){ materials.push(n); added++; } });
+      items.forEach(it=>{
+        if(!materials.some(m=>matName(m)===it.name)){ materials.push({name:it.name, unit:it.unit}); added++; }
+      });
       storSet("materials", materials);
       drawMatList();
       syncToServer();
@@ -595,7 +663,7 @@ function renderMaterials(){
     if(chartSection.open && !chartLoaded){
       chartLoaded = true;
       const {totals} = await fetchDeptSnapshot();
-      document.getElementById("chartBody").innerHTML = renderChartRows(totals);
+      document.getElementById("chartBody").innerHTML = renderVerticalChart(totals);
     }
   });
 }
@@ -610,12 +678,12 @@ function renderDept(n){
   app.innerHTML = `<div class="page-title">
       <h2>${DEPT_NAMES[n]} - احتياج وتوافر المواد ${permLabel}</h2>
       <div class="toolbar">
-        <button class="btn btn-secondary" id="addRow">+ إضافة صف</button>
+        ${perm==="full" ? `<button class="btn btn-secondary" id="addRow">+ إضافة صف</button>` : ""}
         <button class="btn btn-secondary" id="exportData">📤 نسخة احتياطية Excel</button>
       </div>
     </div>
     <div class="info-box">بياناتك تُحفظ وتُرسل تلقائيًا لصفحة المدير فور التعديل، بدون أي حاجة لإرسال ملفات.${
-      perm==="limited" ? "<br>ملاحظة: لا يمكنك حذف الصفوف، ولا تعديل أي صف بعد إضافة صف جديد بعده." : ""
+      perm==="limited" ? "<br>ملاحظة: صلاحيتك تسمح فقط بتسجيل حركة إدخال/إخراج على المواد الموجودة عبر زر \"🔁 حركة\" — لا يمكنك تعديل الصفوف مباشرة أو حذفها أو إضافة مواد جديدة." : ""
     }</div>
     <div class="legend">
       <span>مستوى الكفاية:</span>
@@ -626,7 +694,7 @@ function renderDept(n){
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>تسلسل</th><th>اسم المادة</th><th>الاحتياج</th><th>العدد المتوفر</th><th>الكفاية</th><th>ملاحظات</th><th></th>
+          <th>تسلسل</th><th>اسم المادة</th><th>الوحدة</th><th>الاحتياج</th><th>العدد المتوفر</th><th>الكفاية</th><th>ملاحظات</th><th>إجراءات</th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -649,14 +717,14 @@ function renderDept(n){
 
   function draw(){
     const tbody = document.getElementById("tbody");
-    const canDelete = perm === "full";
+    const editable = perm === "full";
     tbody.innerHTML = rows.map((r,i)=>{
       const cov = coverage(r.need, r.available);
-      const editable = perm === "full" || !r.locked;
+      const unit = unitForMaterial(materials, r.material);
       const matCell = editable
         ? `<select class="f-mat">
               <option value="">— اختر —</option>
-              ${materials.map(m=>`<option value="${m}" ${m===r.material?"selected":""}>${m}</option>`).join("")}
+              ${materials.map(m=>`<option value="${matName(m)}" ${matName(m)===r.material?"selected":""}>${matName(m)}</option>`).join("")}
             </select>`
         : `<span>${r.material || "—"}</span>`;
       const needCell = editable
@@ -668,22 +736,23 @@ function renderDept(n){
       const notesCell = editable
         ? `<input type="text" class="f-notes" value="${r.notes ?? ""}">`
         : `<span>${r.notes ?? ""}</span>`;
-      const lastCell = canDelete
-        ? `<button class="del-btn" title="حذف الصف">🗑</button>`
-        : (editable ? "" : `<span title="مقفل — تم إضافة صف جديد بعده">🔒</span>`);
+      const actions = `
+        <button class="mov-btn" title="حركة إدخال/إخراج المادة" data-mov="${r.id}">🔁 حركة</button>
+        ${editable ? `<button class="del-btn" title="حذف الصف">🗑</button>` : ""}`;
       return `<tr data-i="${i}">
         <td>${i+1}</td>
         <td>${matCell}</td>
+        <td>${unit || "—"}</td>
         <td>${needCell}</td>
         <td>${availCell}</td>
         <td><span class="coverage-cell ${coverageClass(cov)}">${fmtCov(cov)}</span></td>
         <td>${notesCell}</td>
-        <td>${lastCell}</td>
+        <td>${actions}</td>
       </tr>`;
     }).join("");
 
     if(!rows.length){
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-note">لا توجد صفوف بعد. اضغط "+ إضافة صف" للبدء.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="empty-note">لا توجد صفوف بعد.${editable ? ' اضغط "+ إضافة صف" للبدء.' : ''}</td></tr>`;
     }
     document.getElementById("deptStatus").textContent = `عدد الصفوف: ${rows.length}` +
       (materials.length ? "" : " — ملاحظة: قائمة المواد فارغة.") +
@@ -692,7 +761,7 @@ function renderDept(n){
     tbody.querySelectorAll("tr[data-i]").forEach(tr=>{
       const i = Number(tr.dataset.i);
       const matEl = tr.querySelector(".f-mat");
-      if(matEl) matEl.onchange = e=>{ rows[i].material = e.target.value; save(); };
+      if(matEl) matEl.onchange = e=>{ rows[i].material = e.target.value; save(); draw(); };
       const needEl = tr.querySelector(".f-need");
       if(needEl) needEl.oninput = e=>{ rows[i].need = e.target.value; save(); redrawCoverage(tr,i); };
       const availEl = tr.querySelector(".f-avail");
@@ -705,6 +774,8 @@ function renderDept(n){
           rows.splice(i,1); save(); draw();
         });
       };
+      const movBtn = tr.querySelector("[data-mov]");
+      if(movBtn) movBtn.onclick = ()=> renderMovement(n, movBtn.dataset.mov);
     });
   }
 
@@ -730,18 +801,160 @@ function renderDept(n){
     }, 500);
   }
 
-  document.getElementById("addRow").onclick = ()=>{
-    rows.forEach(r=>{ r.locked = true; });
-    rows.push({id:uid(), material:"", need:"", available:"", notes:"", locked:false});
+  const addRowBtn = document.getElementById("addRow");
+  if(addRowBtn) addRowBtn.onclick = ()=>{
+    rows.push({id:uid(), material:"", need:"", available:"", notes:"", movements:[]});
     save();
     draw();
   };
 
   document.getElementById("exportData").onclick = ()=>{
     const wb = XLSX.utils.book_new();
-    const ws = rowsToWorksheet(rows);
+    const ws = rowsToWorksheet(rows, materials);
     XLSX.utils.book_append_sheet(wb, ws, DEPT_NAMES[n]);
     downloadWorkbook(wb, `${DEPT_NAMES[n]}.xlsx`);
+  };
+}
+
+// ---------- MATERIAL MOVEMENT SUB-PAGE (stock in/out ledger for one row) ----------
+function renderMovement(n, rowId){
+  setNav(session && session.role==="manager");
+  const perm = (session && session.role==="manager") ? "full" : (session ? session.perm : "full");
+  let materials = storGet("materials") || [];
+  let rows = storGet(`dept_${n}`) || [];
+  let row = rows.find(r=>r.id===rowId);
+  if(!row){ renderDept(n); return; }
+  if(!Array.isArray(row.movements)) row.movements = [];
+  const unit = unitForMaterial(materials, row.material);
+  const canDeleteMov = perm === "full";
+  const today = new Date().toISOString().slice(0,10);
+
+  app.innerHTML = `
+    <div class="page-title">
+      <h2>حركة المادة: ${row.material || "—"}</h2>
+      <div class="toolbar">
+        <button class="btn btn-secondary" id="backBtn">⬅ رجوع لـ ${DEPT_NAMES[n]}</button>
+      </div>
+    </div>
+    <div class="summary-cards">
+      <div class="summary-card"><div class="val" id="curAvail">${row.available || 0}</div><div class="lbl">العدد المتوفر حاليًا${unit?` (${unit})`:""}</div></div>
+      <div class="summary-card"><div class="val">${row.need || 0}</div><div class="lbl">الاحتياج${unit?` (${unit})`:""}</div></div>
+    </div>
+
+    <div class="movement-forms">
+      <div class="movement-form in">
+        <h3>📥 تسجيل إدخال</h3>
+        <label>الكمية المدخلة${unit?` (${unit})`:""}</label>
+        <input type="number" min="1" id="inQty">
+        <label>تاريخ الإدخال</label>
+        <input type="date" id="inDate" value="${today}">
+        <label>مصدر المادة المدخلة</label>
+        <input type="text" id="inSource" placeholder="مثال: التوريد المركزي / تبرع...">
+        <button class="btn btn-primary" id="addInBtn">+ تسجيل الإدخال</button>
+      </div>
+      <div class="movement-form out">
+        <h3>📤 تسجيل إخراج</h3>
+        <label>الكمية المخرجة${unit?` (${unit})`:""}</label>
+        <input type="number" min="1" id="outQty">
+        <label>تاريخ الإخراج</label>
+        <input type="date" id="outDate" value="${today}">
+        <label>اسم المستلم</label>
+        <input type="text" id="outRecipient" placeholder="اسم الجهة أو الشخص المستلم">
+        <button class="btn btn-primary" id="addOutBtn">+ تسجيل الإخراج</button>
+      </div>
+    </div>
+
+    <h3 style="margin:22px 0 10px;">سجل الحركة</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>التاريخ</th><th>النوع</th><th>الكمية</th><th>المصدر / المستلم</th>${canDeleteMov ? "<th></th>" : ""}</tr></thead>
+        <tbody id="movTbody"></tbody>
+      </table>
+    </div>
+    <p class="status" id="movStatus"></p>`;
+
+  document.getElementById("backBtn").onclick = ()=> renderDept(n);
+
+  let saveTimer = null;
+  function persist(){
+    storSet(`dept_${n}`, rows);
+    const statusEl = document.getElementById("movStatus");
+    if(statusEl) statusEl.textContent = "🔄 جارٍ الحفظ على السيرفر...";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async ()=>{
+      const ok = await apiPost(`/api/dept/${n}`, rows);
+      const el = document.getElementById("movStatus");
+      if(el) el.textContent = ok ? "✅ محفوظ ومتزامن مع المدير" : "⚠️ تعذّر الاتصال بالسيرفر — محفوظ محليًا فقط حاليًا";
+    }, 400);
+  }
+
+  function drawSummary(){
+    const el = document.getElementById("curAvail");
+    if(el) el.textContent = row.available || 0;
+  }
+
+  function drawMovTable(){
+    const tbody = document.getElementById("movTbody");
+    const list = [...row.movements].sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.ts||0)-(a.ts||0));
+    tbody.innerHTML = list.length ? list.map(mv=>`
+      <tr data-mid="${mv.id}">
+        <td>${mv.date || "—"}</td>
+        <td><span class="mov-type ${mv.type}">${mv.type==="in" ? "إدخال" : "إخراج"}</span></td>
+        <td>${mv.qty}${unit ? " "+unit : ""}</td>
+        <td>${mv.party || "—"}</td>
+        ${canDeleteMov ? `<td><button class="del-btn" data-delmov="${mv.id}" title="حذف الحركة">🗑</button></td>` : ""}
+      </tr>`).join("") : `<tr><td colspan="${canDeleteMov?5:4}" class="empty-note">لا توجد حركات مسجّلة بعد.</td></tr>`;
+
+    if(canDeleteMov){
+      tbody.querySelectorAll("[data-delmov]").forEach(b=>{
+        b.onclick = ()=>{
+          const mid = b.dataset.delmov;
+          confirmAction("هل أنت متأكد من حذف هذه الحركة؟ سيتم تعديل العدد المتوفر تبعًا لذلك.", ()=>{
+            const idx = row.movements.findIndex(m=>m.id===mid);
+            if(idx<0) return;
+            const mv = row.movements[idx];
+            row.available = (Number(row.available)||0) + (mv.type==="out" ? mv.qty : -mv.qty);
+            row.movements.splice(idx,1);
+            persist(); drawMovTable(); drawSummary();
+          });
+        };
+      });
+    }
+  }
+  drawMovTable();
+
+  document.getElementById("addInBtn").onclick = ()=>{
+    const qty = Number(document.getElementById("inQty").value);
+    const date = document.getElementById("inDate").value;
+    const source = document.getElementById("inSource").value.trim();
+    if(!qty || qty<=0){ alert("الرجاء إدخال كمية صحيحة أكبر من صفر."); return; }
+    if(!date){ alert("الرجاء تحديد تاريخ الإدخال."); return; }
+    row.movements.push({id:uid(), type:"in", qty, date, party:source, ts:Date.now()});
+    row.available = (Number(row.available)||0) + qty;
+    persist(); drawMovTable(); drawSummary();
+    document.getElementById("inQty").value = "";
+    document.getElementById("inSource").value = "";
+  };
+
+  document.getElementById("addOutBtn").onclick = ()=>{
+    const qty = Number(document.getElementById("outQty").value);
+    const date = document.getElementById("outDate").value;
+    const recipient = document.getElementById("outRecipient").value.trim();
+    if(!qty || qty<=0){ alert("الرجاء إدخال كمية صحيحة أكبر من صفر."); return; }
+    if(!date){ alert("الرجاء تحديد تاريخ الإخراج."); return; }
+    const doAdd = ()=>{
+      row.movements.push({id:uid(), type:"out", qty, date, party:recipient, ts:Date.now()});
+      row.available = (Number(row.available)||0) - qty;
+      persist(); drawMovTable(); drawSummary();
+      document.getElementById("outQty").value = "";
+      document.getElementById("outRecipient").value = "";
+    };
+    if((Number(row.available)||0) - qty < 0){
+      confirmAction("الكمية المخرجة أكبر من العدد المتوفر حاليًا، وسيصبح الرصيد سالبًا. هل تريد المتابعة؟", doAdd,
+        {title:"تأكيد الإخراج", yesLabel:"نعم، متابعة"});
+    }else{
+      doAdd();
+    }
   };
 }
 
@@ -766,7 +979,7 @@ function renderManager(){
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>تسلسل</th><th>اسم المادة</th><th>إجمالي العدد المتوفر</th><th>إجمالي الاحتياج</th><th>الكفاية الإجمالية</th>
+          <th>تسلسل</th><th>اسم المادة</th><th>الوحدة</th><th>إجمالي العدد المتوفر</th><th>إجمالي الاحتياج</th><th>الكفاية الإجمالية</th>
         </tr></thead>
         <tbody id="mtbody"></tbody>
       </table>
@@ -782,12 +995,12 @@ function renderManager(){
 
     const tbody = document.getElementById("mtbody");
     if(!totals.length){
-      tbody.innerHTML = `<tr><td colspan="5" class="empty-note">لا توجد بيانات بعد — ما في قسم أدخل بياناته حتى الآن.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-note">لا توجد بيانات بعد — ما في قسم أدخل بياناته حتى الآن.</td></tr>`;
     }else{
       tbody.innerHTML = totals.map((t,i)=>{
         const cov = t.need>0 ? t.avail/t.need : null;
         return `<tr>
-          <td>${i+1}</td><td>${t.mat}</td><td>${t.avail}</td><td>${t.need}</td>
+          <td>${i+1}</td><td>${t.mat}</td><td>${t.unit || "—"}</td><td>${t.avail}</td><td>${t.need}</td>
           <td><span class="coverage-cell ${coverageClass(cov)}">${fmtCov(cov)}</span></td>
         </tr>`;
       }).join("");
@@ -807,6 +1020,7 @@ function renderManager(){
     const data = lastTotals.map((t,i)=>({
       "تسلسل": i+1,
       "اسم المادة": t.mat,
+      "الوحدة": t.unit || "",
       "إجمالي العدد المتوفر": t.avail,
       "إجمالي الاحتياج": t.need,
       "الكفاية": t.need>0 ? (t.avail/t.need).toFixed(1) : "—"
