@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>نظام إدارة احتياج وتوافر المواد - مديرية صحة طرطوس</title>
+<title>فورم احتياج وتوافر المواد - مديرية صحة طرطوس</title>
 <script src="xlsx.full.min.js"></script>
 <style>
   :root{
@@ -201,6 +201,7 @@
     <img src="logo.png" alt="شعار الجمهورية العربية السورية">
     <div class="brand-text">
       <h1>مديرية صحة طرطوس</h1>
+      <div class="sub">فورم احتياج وتوافر المواد</div>
       <div class="org">الجمهورية العربية السورية</div>
     </div>
   </div>
@@ -220,27 +221,30 @@ const DEPT_NAMES = {
   4: "مشفى بانياس",
   5: "مشفى التوليد"
 };
-const DEPT_ACCOUNTS = {
-  1: {full:"Ware1F#2026", limited:"Ware1L#2026"},
-  2: {full:"Ware2F#2026", limited:"Ware2L#2026"},
-  3: {full:"Ware3F#2026", limited:"Ware3L#2026"},
-  4: {full:"Ware4F#2026", limited:"Ware4L#2026"},
-  5: {full:"Ware5F#2026", limited:"Ware5L#2026"}
-};
-const MANAGER_PASSWORD = "Manager#2026";
+// NOTE: passwords are NOT stored here anymore. Login now happens via a
+// server-side check in /api/login, which never exposes credentials to
+// the browser. See functions/api/login.js.
 
 const app = document.getElementById("app");
 const homeBtn = document.getElementById("homeBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 
-let session = null; // {role:"manager"} or {role:"dept", n:1}
+let session = null;   // {role:"manager"} or {role:"dept", n:1, perm:"full"|"limited"}
+let authToken = null; // signed session token returned by /api/login, kept in memory only
 
 homeBtn.onclick = () => { if(session && session.role==="manager") renderManagerHome(); };
-logoutBtn.onclick = () => { session = null; renderLogin(); };
+logoutBtn.onclick = () => { session = null; authToken = null; renderLogin(); };
 
 function setNav(showHome){
   homeBtn.style.display = showHome ? "inline-block" : "none";
   logoutBtn.style.display = session ? "inline-block" : "none";
+}
+
+function sessionExpired(){
+  authToken = null;
+  session = null;
+  alert("انتهت صلاحية الجلسة، الرجاء تسجيل الدخول من جديد.");
+  renderLogin();
 }
 
 // ---------- storage helpers (local to this device/browser only) ----------
@@ -306,7 +310,10 @@ function confirmAction(message, onConfirm, opts = {}){
 // ---------- server sync helpers (shared across devices via Cloudflare KV) ----------
 async function apiGet(path){
   try{
-    const res = await fetch(path);
+    const res = await fetch(path, {
+      headers: authToken ? {"Authorization": `Bearer ${authToken}`} : {}
+    });
+    if(res.status === 401){ sessionExpired(); return null; }
     if(!res.ok) return null;
     return await res.json();
   }catch(e){ return null; }
@@ -315,9 +322,13 @@ async function apiPost(path, data){
   try{
     const res = await fetch(path, {
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{
+        "Content-Type":"application/json",
+        ...(authToken ? {"Authorization": `Bearer ${authToken}`} : {})
+      },
       body: JSON.stringify(data)
     });
+    if(res.status === 401){ sessionExpired(); return false; }
     return res.ok;
   }catch(e){ return false; }
 }
@@ -461,29 +472,46 @@ function renderLogin(){
   roleManagerBtn.onclick = ()=>setRole("manager");
   roleDeptBtn.onclick = ()=>setRole("dept");
 
-  function tryLogin(){
+  async function tryLogin(){
     const pw = pwInput.value;
-    if(role==="manager"){
-      if(pw === MANAGER_PASSWORD){
+    if(!pw){ errEl.textContent = "الرجاء إدخال كلمة السر"; return; }
+    const loginBtnEl = document.getElementById("loginBtn");
+    loginBtnEl.disabled = true;
+    const originalLabel = loginBtnEl.textContent;
+    loginBtnEl.textContent = "جارٍ التحقق...";
+    errEl.textContent = "";
+
+    try{
+      const body = role === "manager"
+        ? {role:"manager", password:pw}
+        : {role:"dept", n:Number(document.getElementById("deptSelect").value), password:pw};
+
+      const res = await fetch("/api/login", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify(body)
+      });
+
+      if(!res.ok){
+        errEl.textContent = res.status === 500 ? "الخادم غير مُعدّ بعد، يرجى التواصل مع الدعم الفني." : "كلمة السر غير صحيحة";
+        return;
+      }
+      const data = await res.json();
+      authToken = data.token;
+      if(data.role === "manager"){
         session = {role:"manager"};
         renderManagerHome();
       }else{
-        errEl.textContent = "كلمة السر غير صحيحة";
+        session = {role:"dept", n:data.n, perm:data.perm};
+        renderDept(data.n);
       }
-    }else{
-      const n = Number(document.getElementById("deptSelect").value);
-      const acc = DEPT_ACCOUNTS[n];
-      if(pw === acc.full){
-        session = {role:"dept", n, perm:"full"};
-        renderDept(n);
-      }else if(pw === acc.limited){
-        session = {role:"dept", n, perm:"limited"};
-        renderDept(n);
-      }else{
-        errEl.textContent = "كلمة السر غير صحيحة";
-      }
+    }catch(e){
+      errEl.textContent = "تعذّر الاتصال بالسيرفر، حاول مرة أخرى.";
+    }finally{
+      loginBtnEl.disabled = false;
+      loginBtnEl.textContent = originalLabel;
+      pwInput.value = "";
     }
-    pwInput.value = "";
   }
   document.getElementById("loginBtn").onclick = tryLogin;
   pwInput.addEventListener("keydown", e=>{ if(e.key==="Enter") tryLogin(); });
