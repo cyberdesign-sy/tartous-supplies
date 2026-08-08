@@ -493,7 +493,13 @@ function renderLogin(){
       });
 
       if(!res.ok){
-        errEl.textContent = res.status === 500 ? "الخادم غير مُعدّ بعد، يرجى التواصل مع الدعم الفني." : "كلمة السر غير صحيحة";
+        let serverMsg = "";
+        try{ const errBody = await res.json(); serverMsg = errBody && errBody.error ? errBody.error : ""; }catch(e){}
+        if(res.status === 500){
+          errEl.textContent = "خطأ إعداد بالسيرفر" + (serverMsg ? `: ${serverMsg}` : "") + " — يرجى مراجعة متغيرات البيئة على Cloudflare.";
+        }else{
+          errEl.textContent = "كلمة السر غير صحيحة" + (serverMsg && serverMsg !== "invalid credentials" ? ` (${serverMsg})` : "");
+        }
         return;
       }
       const data = await res.json();
